@@ -1,0 +1,37 @@
+staff_student_record_system/
+│
+├── config/
+│   └── db_connect.php          # Database connection file
+│
+├── admin/
+│   ├── dashboard.php
+│   ├── register_student.php
+│   ├── register_staff.php
+│   ├── review_student.php
+│   ├── review_staff.php
+│   └── approve_user.php
+│
+├── student/
+│   ├── dashboard.php
+│   ├── upload_credentials.php
+│   └── view_status.php
+│
+├── staff/
+│   ├── dashboard.php
+│   ├── upload_credentials.php
+│   └── view_status.php
+│
+├── uploads/
+│   ├── students/
+│   └── staff/
+│
+├── css/
+│   └── style.css
+│
+├── js/
+│   └── script.js
+│
+├── login.php
+├── logout.php
+├── index.php
+└── register_admin.php
