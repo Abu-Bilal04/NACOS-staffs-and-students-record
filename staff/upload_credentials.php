@@ -2,7 +2,7 @@
 session_start();
 include('../config/db_connect.php');
 
-// ✅ Ensure user is logged in
+// Ensure user is logged in
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['role'])) {
     header("Location: ../index.php");
     exit();
@@ -12,10 +12,12 @@ $user_id = $_SESSION['user_id'];
 $role = $_SESSION['role'];
 $message = "";
 
-// =============================
-// 🟢 Handle form submission
-// =============================
+// ===================================
+// Handle form submission
+// ===================================
 if (isset($_POST['upload'])) {
+    $maxFileSize = 100 * 1024; // 100 KB limit
+
     if ($role == 'student') {
         $uploadDir = '../uploads/students/';
         $table = 'student_credentials';
@@ -47,22 +49,37 @@ if (isset($_POST['upload'])) {
             'third_degree',
             'olevel_certificate',
             'indigent_certificate',
-            'birth_certificate'
+            'birth_certificate',
+            'confirmation_letter',
+            'regularization_letter',
+            'other_relevant_documents'
         ];
     }
 
     $values = [];
     foreach ($fields as $field) {
         if (!empty($_FILES[$field]['name'])) {
+            // Check file size
+            if ($_FILES[$field]['size'] > $maxFileSize) {
+                $message .= "<div class='alert alert-danger'>
+                    File too large for <strong>$field</strong>. Maximum size is 100 KB.
+                </div>";
+                continue;
+            }
+
+            // Secure upload
             $fileName = time() . "_" . basename($_FILES[$field]['name']);
             $targetFile = $uploadDir . $fileName;
+
             if (move_uploaded_file($_FILES[$field]['tmp_name'], $targetFile)) {
                 $values[$field] = $fileName;
+            } else {
+                $message .= "<div class='alert alert-danger'>Error uploading <strong>$field</strong>.</div>";
             }
         }
     }
 
-    // 🟢 Check if record exists
+    // Check if record exists
     $check = mysqli_query($conn, "SELECT * FROM $table WHERE $id_field=$user_id");
     if (mysqli_num_rows($check) > 0) {
         // Update existing record
@@ -73,24 +90,26 @@ if (isset($_POST['upload'])) {
         if (!empty($updateFields)) {
             $sql = "UPDATE $table SET " . implode(",", $updateFields) . " WHERE $id_field=$user_id";
             mysqli_query($conn, $sql);
-            $message = "<div class='alert alert-success'>Credentials updated successfully!</div>";
+            $message .= "<div class='alert alert-success'>Credentials updated successfully!</div>";
         }
     } else {
         // Insert new record
-        $columns = implode(",", array_keys($values));
-        $vals = "'" . implode("','", array_values($values)) . "'";
-        $sql = "INSERT INTO $table ($id_field, $columns) VALUES ($user_id, $vals)";
-        if (mysqli_query($conn, $sql)) {
-            $message = "<div class='alert alert-success'>Credentials uploaded successfully!</div>";
-        } else {
-            $message = "<div class='alert alert-danger'>Error: " . mysqli_error($conn) . "</div>";
+        if (!empty($values)) {
+            $columns = implode(",", array_keys($values));
+            $vals = "'" . implode("','", array_values($values)) . "'";
+            $sql = "INSERT INTO $table ($id_field, $columns) VALUES ($user_id, $vals)";
+            if (mysqli_query($conn, $sql)) {
+                $message .= "<div class='alert alert-success'>Credentials uploaded successfully!</div>";
+            } else {
+                $message .= "<div class='alert alert-danger'>Error: " . mysqli_error($conn) . "</div>";
+            }
         }
     }
 }
 
-// =============================
-// 🟢 Fetch existing credentials
-// =============================
+// ===================================
+// Fetch existing credentials
+// ===================================
 if ($role == 'student') {
     $table = 'student_credentials';
     $id_field = 'student_id';
@@ -146,7 +165,8 @@ $uploaded = mysqli_fetch_assoc($existing) ?? [];
                         <span class='badge-uploaded'><i class='bi bi-check-circle'></i> Uploaded</span>
                     </div>";
           } else {
-              echo "<div class='mb-3'><label class='form-label'>$label</label><input type='file' name='$name' class='form-control'></div>";
+              echo "<div class='mb-3'><label class='form-label'>$label</label>
+                    <input type='file' name='$name' class='form-control' accept='.pdf,.jpg,.jpeg,.png'></div>";
           }
       }
       ?>
@@ -156,17 +176,20 @@ $uploaded = mysqli_fetch_assoc($existing) ?? [];
       <?php
       $staffFields = [
           'appointment_letter' => 'Appointment Letter',
-          'promotion_letter1' => 'Promotion Letter 1',
-          'promotion_letter2' => 'Promotion Letter 2',
-          'promotion_letter3' => 'Promotion Letter 3',
-          'promotion_letter4' => 'Promotion Letter 4',
-          'promotion_letter5' => 'Promotion Letter 5',
+          'promotion_letter1' => 'First Promotion',
+          'promotion_letter2' => 'Second Promotion',
+          'promotion_letter3' => 'Third Promotion',
+          'promotion_letter4' => 'Fourth Promotion',
+          'promotion_letter5' => 'Fifth Promotion',
           'first_degree' => 'First Degree',
           'second_degree' => 'Second Degree',
           'third_degree' => 'Third Degree',
           'olevel_certificate' => 'O-Level Certificate',
           'indigent_certificate' => 'Indigent Certificate',
-          'birth_certificate' => 'Birth Certificate'
+          'birth_certificate' => 'Birth Certificate',
+          'confirmation_letter' => 'Confirmation Letter',
+          'regularization_letter' => 'Regularization Letter',
+          'other_relevant_documents' => 'Other Relevant Documents'
       ];
       foreach ($staffFields as $name => $label) {
           if (!empty($uploaded[$name])) {
@@ -175,14 +198,17 @@ $uploaded = mysqli_fetch_assoc($existing) ?? [];
                         <span class='badge-uploaded'><i class='bi bi-check-circle'></i> Uploaded</span>
                     </div>";
           } else {
-              echo "<div class='mb-3'><label class='form-label'>$label</label><input type='file' name='$name' class='form-control'></div>";
+              echo "<div class='mb-3'><label class='form-label'>$label</label>
+                    <input type='file' name='$name' class='form-control' accept='.pdf,.jpg,.jpeg,.png'></div>";
           }
       }
       ?>
     <?php endif; ?>
 
     <div class="d-grid mt-4">
-      <button type="submit" name="upload" class="btn btn-primary"><i class="bi bi-upload"></i> Upload</button>
+      <button type="submit" name="upload" class="btn btn-primary">
+        <i class="bi bi-upload"></i> Upload
+      </button>
     </div>
   </form>
 

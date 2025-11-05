@@ -2,7 +2,7 @@
 session_start();
 include('../config/db_connect.php');
 
-// ✅ Ensure user is logged in
+//  Ensure user is logged in
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['role'])) {
     header("Location: ../index.php");
     exit();

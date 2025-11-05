@@ -15,6 +15,16 @@ $username = $_SESSION['username'];
 $query = "SELECT * FROM staff WHERE staff_id = '$staff_id'";
 $result = mysqli_query($conn, $query);
 $staff = mysqli_fetch_assoc($result);
+
+// Fetch latest rejection reason (if any)
+$reason_query = mysqli_query($conn, "
+    SELECT reason, rejected_by, rejected_at 
+    FROM staff_rejection_reasons 
+    WHERE staff_id = '$staff_id' 
+    ORDER BY rejected_at DESC 
+    LIMIT 1
+");
+$last_reason = mysqli_fetch_assoc($reason_query);
 ?>
 
 <!DOCTYPE html>
@@ -24,7 +34,7 @@ $staff = mysqli_fetch_assoc($result);
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Staff Dashboard</title>
 
-  <!-- ✅ Bootstrap 5 -->
+  <!-- Bootstrap 5 -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 
@@ -160,8 +170,6 @@ $staff = mysqli_fetch_assoc($result);
           </div>
         </div>
       </div>
-
-     
     </div>
 
     <hr class="my-4">
@@ -183,6 +191,14 @@ $staff = mysqli_fetch_assoc($result);
             </td>
         </tr>
       </table>
+
+      <!-- Rejection Reason (Only show if rejected) -->
+      <?php if ($staff['approval_status'] == 'Rejected' && $last_reason): ?>
+        <div class="alert alert-danger mt-3">
+          <strong>Reason for Rejection:</strong> <?php echo htmlspecialchars($last_reason['reason']); ?><br>
+          <small><em>By <?php echo htmlspecialchars($last_reason['rejected_by']); ?> on <?php echo htmlspecialchars($last_reason['rejected_at']); ?></em></small>
+        </div>
+      <?php endif; ?>
     </div>
   </div>
 
