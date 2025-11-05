@@ -19,7 +19,7 @@ $result = mysqli_query($conn, "SELECT * FROM staff ORDER BY created_at DESC");
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Review Staff - Admin</title>
 
-  <!-- ✅ Bootstrap 5 -->
+  <!--  Bootstrap 5 -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
 

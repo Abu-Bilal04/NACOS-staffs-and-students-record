@@ -2,13 +2,13 @@
 session_start();
 include('../config/db_connect.php');
 
-// ✅ Allow only admin
+// Allow only admin
 if (!isset($_SESSION['role']) || $_SESSION['role'] != 'admin') {
     header("Location: ../index.php");
     exit();
 }
 
-// ✅ Validate student ID
+// Validate student ID
 if (!isset($_GET['id']) || empty($_GET['id'])) {
     header("Location: review_student.php");
     exit();
@@ -17,23 +17,43 @@ if (!isset($_GET['id']) || empty($_GET['id'])) {
 $student_id = intval($_GET['id']);
 $message = "";
 
-// ✅ Handle Approve / Reject actions first
+// Handle Approve / Reject actions
 if (isset($_POST['approve'])) {
     mysqli_query($conn, "UPDATE student SET approval_status='Approved' WHERE student_id=$student_id");
     $message = "<div class='alert alert-success text-center'>Student approved successfully.</div>";
 }
+
 elseif (isset($_POST['reject'])) {
-    mysqli_query($conn, "UPDATE student SET approval_status='Rejected' WHERE student_id=$student_id");
-    $message = "<div class='alert alert-danger text-center'>Student rejected.</div>";
+    $reason = mysqli_real_escape_string($conn, $_POST['rejection_reason'] ?? '');
+    
+    if (empty($reason)) {
+        $message = "<div class='alert alert-warning text-center'>Please provide a reason for rejection.</div>";
+    } else {
+        // Update status in student table
+        mysqli_query($conn, "UPDATE student SET approval_status='Rejected' WHERE student_id=$student_id");
+
+        // Insert reason into separate table
+        $admin = mysqli_real_escape_string($conn, $_SESSION['username'] ?? 'admin'); // adjust if username is stored differently
+        mysqli_query($conn, "
+            INSERT INTO student_rejection_reasons (student_id, reason, rejected_by)
+            VALUES ($student_id, '$reason', '$admin')
+        ");
+
+        $message = "<div class='alert alert-danger text-center'>Student rejected with reason recorded.</div>";
+    }
 }
 
-// ✅ Fetch student details
+// Fetch student details
 $studentQuery = mysqli_query($conn, "SELECT * FROM student WHERE student_id = $student_id");
 $student = mysqli_fetch_assoc($studentQuery);
 
-// ✅ Fetch student credentials
+// Fetch student credentials
 $credQuery = mysqli_query($conn, "SELECT * FROM student_credentials WHERE student_id = $student_id");
 $credentials = mysqli_fetch_assoc($credQuery);
+
+// Fetch latest rejection reason (if any)
+$reasonQuery = mysqli_query($conn, "SELECT reason, rejected_at, rejected_by FROM student_rejection_reasons WHERE student_id=$student_id ORDER BY rejected_at DESC LIMIT 1");
+$lastReason = mysqli_fetch_assoc($reasonQuery);
 ?>
 
 <!DOCTYPE html>
@@ -42,38 +62,14 @@ $credentials = mysqli_fetch_assoc($credQuery);
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>View Student Details</title>
-
-  <!-- ✅ Bootstrap 5 -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-
   <style>
-    body {
-      background-color: #f4f7fb;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-    .container {
-      max-width: 900px;
-      margin-top: 50px;
-      background: white;
-      padding: 30px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    }
-    .section-title {
-      background-color: #003366;
-      color: white;
-      padding: 8px 12px;
-      border-radius: 6px;
-      font-size: 1.1rem;
-    }
-    .doc-link {
-      text-decoration: none;
-      color: #0d6efd;
-    }
-    .doc-link:hover {
-      text-decoration: underline;
-    }
+    body { background-color: #f4f7fb; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    .container { max-width: 900px; margin-top: 50px; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    .section-title { background-color: #003366; color: white; padding: 8px 12px; border-radius: 6px; font-size: 1.1rem; }
+    .doc-link { text-decoration: none; color: #0d6efd; }
+    .doc-link:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -130,7 +126,20 @@ $credentials = mysqli_fetch_assoc($credQuery);
       <?php endif; ?>
     </div>
 
+    <!-- NEW: Show previous rejection reason -->
+    <?php if ($lastReason): ?>
+      <div class="alert alert-secondary">
+        <strong>Last Rejection Reason:</strong> <?php echo htmlspecialchars($lastReason['reason']); ?><br>
+        <small><em>By <?php echo htmlspecialchars($lastReason['rejected_by']); ?> on <?php echo htmlspecialchars($lastReason['rejected_at']); ?></em></small>
+      </div>
+    <?php endif; ?>
+
     <form method="POST" class="text-center mt-4">
+      <div class="mb-3">
+        <label for="rejection_reason" class="form-label fw-bold">Reason for Rejection (if rejecting):</label>
+        <textarea name="rejection_reason" id="rejection_reason" class="form-control" rows="3" placeholder="Enter reason for rejection..."></textarea>
+      </div>
+
       <button type="submit" name="approve" class="btn btn-success me-2">
         <i class="bi bi-check-circle"></i> Approve
       </button>
@@ -145,7 +154,6 @@ $credentials = mysqli_fetch_assoc($credQuery);
   <?php else: ?>
     <div class="alert alert-danger text-center">Student record not found!</div>
   <?php endif; ?>
-
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

@@ -2,16 +2,16 @@
 session_start();
 include('../config/db_connect.php');
 
-// ✅ Only admin can access
+// Only admin can access
 if (!isset($_SESSION['role']) || $_SESSION['role'] != 'admin') {
     header("Location: ../index.php");
     exit();
 }
 
-// ✅ Fetch all students (fixed table name)
+//  Fetch all students (fixed table name)
 $query = mysqli_query($conn, "SELECT * FROM student ORDER BY created_at DESC");
 
-// ✅ Handle query errors gracefully
+//  Handle query errors gracefully
 if (!$query) {
     die("<div class='alert alert-danger text-center'>
         <strong>Database Error:</strong> " . mysqli_error($conn) . "
@@ -26,7 +26,7 @@ if (!$query) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Review Students - Admin</title>
 
-  <!-- ✅ Bootstrap CDN -->
+  <!--  Bootstrap CDN -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
 

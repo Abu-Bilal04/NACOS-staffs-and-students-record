@@ -2,7 +2,7 @@
 session_start();
 include('../config/db_connect.php');
 
-// ✅ Check login
+//  Check login
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['role'])) {
     header("Location: ../index.php");
     exit();
@@ -11,7 +11,7 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role'])) {
 $username = $_SESSION['username'];
 $role = ucfirst($_SESSION['role']); // Capitalize role name
 
-// ✅ Fetch stats (only for admin)
+//  Fetch stats (only for admin)
 $total_students = $pending_students = $approved_students = $rejected_students = 0;
 $total_staff = $pending_staff = $approved_staff = $rejected_staff = 0;
 
@@ -37,7 +37,7 @@ if ($role === "Admin") {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?php echo $role; ?> Dashboard</title>
 
-  <!-- ✅ Bootstrap 5 CDN -->
+  <!--  Bootstrap 5 CDN -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
 
@@ -174,7 +174,7 @@ if ($role === "Admin") {
     </div>
 
     <?php if ($role == "Admin") { ?>
-      <!-- ✅ Admin Stats Section -->
+      <!--  Admin Stats Section -->
       <h5 class="section-title"><i class="bi bi-bar-chart"></i> System Overview</h5>
       <div class="row g-4">
         <!-- Students -->
@@ -206,7 +206,7 @@ if ($role === "Admin") {
         </div>
       </div>
 
-      <!-- ✅ Action Cards -->
+      <!--  Action Cards -->
       <h5 class="section-title mt-5"><i class="bi bi-grid"></i> Admin Actions</h5>
       <div class="row g-4">
         <div class="col-md-3">
@@ -251,7 +251,7 @@ if ($role === "Admin") {
       </div>
 
     <?php } else { ?>
-      <!-- ✅ Staff / Student Dashboard -->
+      <!--  Staff / Student Dashboard -->
       <div class="row g-4 justify-content-center">
         <div class="col-md-4">
           <div class="card text-center bg-light">
