@@ -2,7 +2,7 @@
 session_start();
 include('../config/db_connect.php');
 
-// ✅ Ensure user is logged in and is a student
+//  Ensure user is logged in and is a student
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'student') {
     header("Location: ../index.php");
     exit();
@@ -10,7 +10,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'student') {
 
 $student_id = $_SESSION['user_id'];
 
-// ✅ Fetch student record
+//  Fetch student record
 $query = "SELECT * FROM student_credentials WHERE student_id = $student_id";
 $result = mysqli_query($conn, $query);
 $credentials = mysqli_fetch_assoc($result);

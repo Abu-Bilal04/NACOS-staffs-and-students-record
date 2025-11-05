@@ -2,7 +2,7 @@
 session_start();
 include('../config/db_connect.php');
 
-// ✅ Ensure user is logged in
+// Ensure user is logged in
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'student') {
     header("Location: ../index.php");
     exit();
@@ -11,11 +11,21 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'student') {
 $username = $_SESSION['username'];
 $student_id = $_SESSION['user_id'];
 
-// ✅ Fetch student's approval status
+// Fetch student's approval status
 $query = "SELECT approval_status FROM student WHERE student_id = '$student_id'";
 $result = mysqli_query($conn, $query);
 $student = mysqli_fetch_assoc($result);
 $status = $student['approval_status'] ?? 'Pending';
+
+// Fetch latest rejection reason (if rejected)
+$reason_query = mysqli_query($conn, "
+    SELECT reason, rejected_by, rejected_at 
+    FROM student_rejection_reasons 
+    WHERE student_id = '$student_id' 
+    ORDER BY rejected_at DESC 
+    LIMIT 1
+");
+$last_reason = mysqli_fetch_assoc($reason_query);
 ?>
 
 <!DOCTYPE html>
@@ -25,7 +35,7 @@ $status = $student['approval_status'] ?? 'Pending';
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Student Dashboard</title>
 
-  <!-- ✅ Bootstrap 5 & Icons -->
+  <!-- Bootstrap 5 & Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
 
@@ -162,7 +172,7 @@ $status = $student['approval_status'] ?? 'Pending';
       <p class="text-muted">Manage your uploads and check your approval status</p>
     </div>
 
-    <!-- ✅ Student Status -->
+    <!--  Student Status -->
     <div class="status-card bg-light">
       <h5 class="section-title"><i class="bi bi-person-check"></i> Approval Status</h5>
       <?php
@@ -177,9 +187,17 @@ $status = $student['approval_status'] ?? 'Pending';
           <?php echo htmlspecialchars($status); ?>
         </span>
       </p>
+
+      <!-- Show reason if rejected -->
+      <?php if ($status === 'Rejected' && $last_reason): ?>
+        <div class="alert alert-danger mt-4 text-start">
+          <strong>Reason for Rejection:</strong> <?php echo htmlspecialchars($last_reason['reason']); ?><br>
+          <small><em>By <?php echo htmlspecialchars($last_reason['rejected_by']); ?> on <?php echo htmlspecialchars($last_reason['rejected_at']); ?></em></small>
+        </div>
+      <?php endif; ?>
     </div>
 
-    <!-- ✅ Actions -->
+    <!--  Actions -->
     <h5 class="section-title mt-5"><i class="bi bi-grid"></i> Quick Actions</h5>
     <div class="row g-4 justify-content-center">
       <div class="col-md-5">

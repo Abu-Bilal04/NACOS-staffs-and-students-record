@@ -2,7 +2,7 @@
 session_start();
 include('../config/db_connect.php');
 
-// ✅ Ensure only logged-in students can access
+//  Ensure only logged-in students can access
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'student') {
     header("Location: ../index.php");
     exit();
@@ -11,12 +11,14 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'student') {
 $student_id = $_SESSION['user_id'];
 $message = "";
 
-// ✅ Fetch existing credentials if any
+//  Fetch existing credentials if any
 $existing = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM student_credentials WHERE student_id = $student_id"));
 
-// ✅ Handle form submission
+//  Handle form submission
 if (isset($_POST['upload'])) {
     $uploadDir = '../uploads/students/';
+    $maxFileSize = 100 * 1024; // 100 KB limit
+
     $fields = [
         'primary_certificate',
         'batch_certificate',
@@ -34,15 +36,26 @@ if (isset($_POST['upload'])) {
 
     foreach ($fields as $field) {
         if (!empty($_FILES[$field]['name'])) {
+            // ✅ Check file size
+            if ($_FILES[$field]['size'] > $maxFileSize) {
+                $message .= "<div class='alert alert-danger'>
+                    The file for <strong>$field</strong> exceeds 100 KB. Please upload a smaller file.
+                </div>";
+                continue;
+            }
+
             $fileName = time() . "_" . basename($_FILES[$field]['name']);
             $targetFile = $uploadDir . $fileName;
+
             if (move_uploaded_file($_FILES[$field]['tmp_name'], $targetFile)) {
                 $values[$field] = $fileName;
+            } else {
+                $message .= "<div class='alert alert-danger'>Error uploading <strong>$field</strong>.</div>";
             }
         }
     }
 
-    // ✅ If student already has a record
+    //  If student already has a record
     if ($existing) {
         $updateFields = [];
         foreach ($values as $k => $v) {
@@ -51,24 +64,26 @@ if (isset($_POST['upload'])) {
         if (!empty($updateFields)) {
             $sql = "UPDATE student_credentials SET " . implode(",", $updateFields) . " WHERE student_id=$student_id";
             if (mysqli_query($conn, $sql)) {
-                $message = "<div class='alert alert-success'>Credentials updated successfully!</div>";
+                $message .= "<div class='alert alert-success'>Credentials updated successfully!</div>";
             } else {
-                $message = "<div class='alert alert-danger'>Database error: " . mysqli_error($conn) . "</div>";
+                $message .= "<div class='alert alert-danger'>Database error: " . mysqli_error($conn) . "</div>";
             }
         } else {
-            $message = "<div class='alert alert-warning'>No new file selected.</div>";
+            $message .= "<div class='alert alert-warning'>No new valid file selected.</div>";
         }
     } else {
-        // ✅ Insert new record
+        //  Insert new record
         if (!empty($values)) {
             $columns = implode(",", array_keys($values));
             $vals = "'" . implode("','", array_values($values)) . "'";
             $sql = "INSERT INTO student_credentials (student_id, $columns) VALUES ($student_id, $vals)";
             if (mysqli_query($conn, $sql)) {
-                $message = "<div class='alert alert-success'>Credentials uploaded successfully!</div>";
+                $message .= "<div class='alert alert-success'>Credentials uploaded successfully!</div>";
             } else {
-                $message = "<div class='alert alert-danger'>Database error: " . mysqli_error($conn) . "</div>";
+                $message .= "<div class='alert alert-danger'>Database error: " . mysqli_error($conn) . "</div>";
             }
+        } else {
+            $message .= "<div class='alert alert-warning'>No valid file uploaded (check size limits).</div>";
         }
     }
 
@@ -121,7 +136,8 @@ if (isset($_POST['upload'])) {
             echo "
             <div class='mb-3'>
               <label class='form-label'>$label</label>
-              <input type='file' name='$name' class='form-control'>
+              <input type='file' name='$name' class='form-control' accept='.pdf,.jpg,.jpeg,.png'>
+              <small class='text-muted'>Max size: 100 KB</small>
             </div>";
         } else {
             echo "
@@ -135,7 +151,7 @@ if (isset($_POST['upload'])) {
     }
 
     if (!$emptyFound) {
-        echo "<div class='alert alert-info text-center'>All credentials have been uploaded ✅</div>";
+        echo "<div class='alert alert-info text-center'>All credentials have been uploaded</div>";
     }
     ?>
 
